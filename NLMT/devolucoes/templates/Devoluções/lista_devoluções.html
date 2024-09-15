@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lista de Devoluções</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            margin: 20px;
+        }
+        .search-container, .new-saida-container {
+            display: none;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .search-container input[type="text"], .new-saida-container input[type="text"], .new-saida-container input[type="number"], .new-saida-container select {
+            margin: 5px 0;
+            padding: 8px;
+            width: calc(100% - 20px);
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .search-container button, .new-saida-container button, .update-button {
+            margin-top: 10px;
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .search-container button:hover, .new-saida-container button:hover, .update-button:hover {
+            background-color: #45a049;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 2px solid #ddd;
+            border-right: 1px solid #ddd; 
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        tr {
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .show-search-button, .show-new-saida-button {
+            margin-bottom: 20px;
+            padding: 10px 15px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .show-search-button:hover, .show-new-saida-button:hover {
+            background-color: #0056b3;
+        }
+        .executada {
+            background-color: #4CAF50 !important;
+            color: white;
+        }
+        .pendente {
+            background-color: #f44336 !important;
+            color: white;
+        }
+        .status-button {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+    <script>
+        function toggleElement(elementId) {
+            var element = document.getElementById(elementId);
+            if (element.style.display === 'none' || element.style.display === '') {
+                element.style.display = 'block';
+            } else {
+                element.style.display = 'none';
+            }
+        }
+
+        function changeStatus(devoluçãoId, executada) {
+            var novoStatus = executada === '1' ? '0' : '1';
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function() {
+                if (this.readyState === 4 && this.status === 200) {
+                    location.reload();
+                }
+            };
+            xhttp.open("POST", "atualizar_status/", true);
+            var csrftoken = getCookie('csrftoken');
+            xhttp.setRequestHeader("X-CSRFToken", csrftoken);
+            xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            xhttp.send("devolução_id=" + devoluçãoId + "&novo_status=" + novoStatus);
+        }
+
+
+        function getCookie(name) {
+            var cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                var cookies = document.cookie.split(';');
+                for (var i = 0; i < cookies.length; i++) {
+                    var cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        function filterStatus(status) {
+            var rows = document.querySelectorAll("tbody tr");
+            rows.forEach(function(row) {
+                if (status === 'executada' && !row.classList.contains('executada')) {
+                    row.style.display = 'none';
+                } else if (status === 'pendente' && !row.classList.contains('pendente')) {
+                    row.style.display = 'none';
+                } else {
+                    row.style.display = 'table-row';
+                }
+            });
+
+            var buttons = document.querySelectorAll(".status-button");
+            buttons.forEach(function(button) {
+                if (button.getAttribute("data-status") !== status) {
+                    button.disabled = false;
+                } else {
+                    button.disabled = true;
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Lista de Devoluções</h1>
+        <button class="show-search-button" onclick="toggleElement('search-container')">Mostrar Pesquisa</button>
+        <div id="search-container" class="search-container">
+            <form method="get" action="{% url 'lista_devoluções' %}">
+                <input type="text" name="fornecedor" placeholder="Pesquisar por fornecedor" value="{{ fornecedor_query|default_if_none:'' }}">
+                <input type="text" name="nota_entrada" placeholder="Pesquisar por Nota de entrada" value="{{ requisitante_query|default_if_none:'' }}">
+                <input type="text" name="itens" placeholder="Pesquisar por itens" value="{{ itens_query|default_if_none:'' }}">
+                <input type="text" name="quantidade" placeholder="Pesquisar por Quantidade" value="{{ quantidade_query|default_if_none:'' }}">
+                <input type="text" name="nota_saida" placeholder="Pesquisar por Nota de saida" value="{{ requisitante_query|default_if_none:'' }}">
+                <input type="text" name="transportadora" placeholder="Pesquisar por Transportadora" value="{{ transportadora_query|default_if_none:'' }}">
+                <input type="text" name="frete_por" placeholder="Pesquisar por frete_por" value="{{ frete_por_query|default_if_none:'' }}">
+                <button type="submit">Pesquisar</button>
+            </form>
+        </div>
+
+        <button class="show-new-saida-button" onclick="toggleElement('new-saida-container')">Nova Devolução</button>
+        <div id="new-saida-container" class="new-saida-container">
+            <form method="post" action="{% url 'nova_devolução' %}">
+                {% csrf_token %}
+                <input type="text" name="fornecedor" placeholder="Fornecedor" required>
+                <input type="text" name="nota_entrada" placeholder="Nota de entrada" required>
+                <input type="text" name="itens" placeholder="Itens" required>
+                <input type="text" name="quantidade" placeholder="Quantidade" required>
+                <input type="text" name="nota_saida" placeholder="Nota de saida" required>
+                <input type="text" name="transportadora" placeholder="Transportadora" required>
+                <input type="text" name="frete_por" placeholder="Frete por" required>
+                <button type="submit">Salvar</button>
+            </form>
+        </div>
+
+        <button class="update-button" onclick="location.reload()">Atualizar Lista</button>
+
+        <div>
+            <button class="status-button" data-status="executada" onclick="filterStatus('executada')">Executadas</button>
+            <button class="status-button" data-status="pendente" onclick="filterStatus('pendente')">Pendentes</button>
+            <button class="status-button" data-status="todas" onclick="filterStatus('todas')">Todas</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Fornecedor</th>
+                    <th>Nota de entrada</th>
+                    <th>Itens</th>
+                    <th>Quantidade</th>
+                    <th>Nota de saida</th>
+                    <th>Transportadora</th>
+                    <th>Frete por</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for devl in Devoluções %}
+                <tr class="{% if devl.executada %}executada{% else %}pendente{% endif %}">
+                    
+                    <td style="text-align: center;">{{ devl.fornecedor }}</td>
+                    <td style="text-align: center;">{{ devl.nota_entrada }}</td>
+                    <td style="text-align: center;">{{ devl.itens }}</td>
+                    <td style="text-align: center;">{{ devl.quantidade }}</td>
+                    <td style="text-align: center;">{{ devl.nota_saida }}</td>
+                    <td style="text-align: center;">{{ devl.transportadora }}</td>
+                    <td style="text-align: center;">{{ devl.frete_por }}</td>
+                    <td>
+                        {% if devl.executada %}
+                            <span class="executada">Executada</span>
+                        {% else %}
+                            <span class="pendente">Pendente</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button class="status-button" onclick="changeStatus('{{ devl.id }}', '{% if devl.executada %}1{% else %}0{% endif %}')">
+                            {% if devl.executada %}
+                                Marcar como Pendente
+                            {% else %}
+                                Marcar como Executada
+                            {% endif %}
+                        </button>                        
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
+    
